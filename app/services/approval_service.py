@@ -126,3 +126,72 @@ class ApprovalService:
 
         # The current policy must still require approval for this operation.
         return decision == "approval_required"
+
+    def consume_for_execution(
+        self,
+        *,
+        approval_id: str,
+        agent_id: str,
+        tool_name: str,
+        arguments: dict,
+    ) -> bool:
+        """Consume a matching approval before an operation may execute.
+
+        A True result means the approval was consumed and the audit write
+        succeeded. Callers must not execute if this method raises or returns
+        False. A consumed approval is never restored automatically.
+        """
+        request = ToolCallRequest(
+            agent_id=agent_id,
+            tool_name=tool_name,
+            arguments=arguments,
+        )
+
+        decision, reason = self.policy.evaluate(request)
+        if decision != "approval_required":
+            self.audit.record(
+                request_id=str(uuid4()),
+                agent_id=agent_id,
+                tool_name=tool_name,
+                decision="deny",
+                reason=(
+                    "Approval consumption denied by current policy: "
+                    f"{reason}"
+                ),
+            )
+            return False
+
+        consumed = self.approvals.consume(
+            approval_id=approval_id,
+            agent_id=agent_id,
+            tool_name=tool_name,
+            arguments=arguments,
+        )
+
+        if not consumed:
+            self.audit.record(
+                request_id=str(uuid4()),
+                agent_id=agent_id,
+                tool_name=tool_name,
+                decision="deny",
+                reason=(
+                    "Approval missing, not approved, already consumed, "
+                    "or bound to a different operation."
+                ),
+            )
+            return False
+
+        # Fail closed: if audit persistence fails, do not let the caller
+        # proceed. The approval remains consumed.
+        record = self.approvals.get(approval_id)
+        if record is None:
+            raise RuntimeError("Consumed approval could not be retrieved.")
+
+        self.audit.record(
+            request_id=record.request_id,
+            agent_id=agent_id,
+            tool_name=tool_name,
+            decision="allow",
+            reason=f"Approval {approval_id} consumed for one execution attempt.",
+        )
+        return True

@@ -44,7 +44,7 @@ def list_approvals(
     status_filter: str | None = Query(
         default="pending",
         alias="status",
-        pattern="^(pending|approved|rejected)$",
+        pattern="^(pending|approved|rejected|consumed)$",
     ),
     limit: int = Query(default=50, ge=1, le=200),
     _reviewer: str = Depends(require_reviewer),

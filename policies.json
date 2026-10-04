@@ -25,6 +25,7 @@
     ".env",
     ".git",
     ".ssh",
+    ".agentshield-proposals",
     "secrets",
     "credentials",
     "id_rsa",
