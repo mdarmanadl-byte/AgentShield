@@ -1,0 +1,29 @@
+
+{
+  "version": 1,
+  "agents": {
+    "demo-agent": {
+      "allowed_tools": [
+        "list_project_files",
+        "read_project_file"
+      ],
+      "denied_tools": [
+        "execute_shell",
+        "read_secret_file",
+        "delete_file"
+      ]
+    }
+  },
+  "path_argument_tools": [
+    "read_project_file"
+  ],
+  "blocked_path_parts": [
+    ".env",
+    ".git",
+    ".ssh",
+    "secrets",
+    "credentials",
+    "id_rsa",
+    "id_ed25519"
+  ]
+}
