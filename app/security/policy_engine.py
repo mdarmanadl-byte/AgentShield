@@ -52,11 +52,26 @@ class PolicyEngine:
             if not isinstance(agent_id, str) or not isinstance(config, dict):
                 raise PolicyLoadError("Invalid agent policy.")
 
-            for key in ("allowed_tools", "denied_tools"):
-                if not self._string_list(config.get(key)):
+            for key in (
+                "allowed_tools",
+                "approval_required_tools",
+                "denied_tools",
+            ):
+                values = config.get(key, [])
+                if not self._string_list(values):
                     raise PolicyLoadError(
                         f"Agent '{agent_id}': '{key}' must be a string list."
                     )
+                config[key] = values
+
+            allowed = set(config["allowed_tools"])
+            approval = set(config["approval_required_tools"])
+            denied = set(config["denied_tools"])
+
+            if allowed & approval or allowed & denied or approval & denied:
+                raise PolicyLoadError(
+                    f"Agent '{agent_id}' has conflicting tool rules."
+                )
 
         self.agents: dict[str, Any] = agents
         self.path_argument_tools = set(path_tools)
@@ -78,6 +93,12 @@ class PolicyEngine:
 
         if request.tool_name in agent["denied_tools"]:
             return "deny", "Tool is explicitly prohibited."
+
+        if request.tool_name in agent["approval_required_tools"]:
+            return (
+                "approval_required",
+                "Tool requires a persisted human approval.",
+            )
 
         if request.tool_name not in agent["allowed_tools"]:
             return "deny", "Tool is not in the agent's allowlist."

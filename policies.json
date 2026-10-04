@@ -7,6 +7,10 @@
         "list_project_files",
         "read_project_file"
       ],
+      "approval_required_tools": [
+        "create_patch",
+        "run_targeted_tests"
+      ],
       "denied_tools": [
         "execute_shell",
         "read_secret_file",

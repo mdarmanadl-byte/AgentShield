@@ -6,7 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-Decision = Literal["allow", "deny"]
+Decision = Literal["allow", "deny", "approval_required"]
 
 
 class ToolCallRequest(BaseModel):
